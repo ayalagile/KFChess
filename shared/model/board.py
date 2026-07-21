@@ -1,6 +1,6 @@
 from typing import Dict, Tuple, Optional
-from logic.model.position import Position
-from logic.model.piece import Piece
+from shared.model.position import Position
+from shared.model.piece import Piece
 
 class Board:
     def __init__(self, width: int, height: int):

@@ -1,6 +1,6 @@
-from logic.model.board import Board
-from logic.model.piece import Piece
-from logic.model.position import Position
+from shared.model.board import Board
+from shared.model.piece import Piece
+from shared.model.position import Position
 
 class BoardParser:
     def __init__(self):

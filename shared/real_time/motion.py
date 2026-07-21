@@ -1,4 +1,4 @@
-from logic.model.position import Position
+from shared.model.position import Position
 
 class Motion:
     def __init__(self, piece, from_pos: Position, to_pos: Position, duration_ms: int = 1000):

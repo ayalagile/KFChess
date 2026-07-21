@@ -1,16 +1,15 @@
 import cv2
 import time
-from logic.model.board import Board
-from logic.model.position import Position
-from logic.model.piece import Piece 
-
-from logic.rules.rule_engine import RuleEngine
-from logic.real_time.real_time_arbiter import RealTimeArbiter
+from shared.model.board import Board
+from shared.model.position import Position
+from shared.model.piece import Piece 
+from shared.rules.rule_engine import RuleEngine
+from shared.real_time.real_time_arbiter import RealTimeArbiter
 from logic.engine.game_engine import GameEngine
-from logic.input.board_mapper import BoardMapper
-from logic.input.controller import Controller
-from ui.renderer import Renderer, CELL_SIZE
-from ui.sprite_manager import SpriteManager
+from client.input.board_mapper import BoardMapper
+from client.input.controller import Controller
+from client.ui.renderer import Renderer, CELL_SIZE
+from client.ui.sprite_manager import SpriteManager
 
 raw_click_pixels = None
 

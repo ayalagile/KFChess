@@ -81,13 +81,23 @@ class SpriteManager:
 
     def get_piece_sprite(self, piece_id: str, logical_state: str):
         """
-        מחזיר את פריים התמונה המתאים לכלי בהתאם למצבו הנוכחי והזמן שעבר
-        piece_id: למשל 'bB1', 'wK'
-        logical_state: המצב הלוגי שמגיע מהמנוע (למשל 'Jumping', 'Moving', 'Idle')
+        מחזיר את פריים התמונה המתאים לכלי בהתאם למצבו הנוכחי והזמן שעבר.
+        אם הועבר אובייקט כלי (כמו אחרי Promotion), אנו בוחרים את הספרייט לפי סוג הכלי,
+        לא לפי מזהה התיקייה הישנה.
         """
-        # מיפוי שם הכלי לתיקיית הנכסים (למשל bB1 -> bB, bP3 -> bP)
-        # נניח ששם התיקייה תואם לשני התווים הראשונים של מזהה הכלי (צבע + סוג)
-        piece_type_key = piece_id[:2] 
+        piece_ref = piece_id
+        if hasattr(piece_id, 'type') and hasattr(piece_id, 'color'):
+            piece_ref = piece_id
+
+        if hasattr(piece_id, 'type') and hasattr(piece_id, 'color'):
+            piece_type = str(getattr(piece_id, 'type', '')).upper()
+            color = str(getattr(piece_id, 'color', '')).lower()
+            if piece_type in {'P', 'N', 'B', 'R', 'Q', 'K'}:
+                piece_type_key = f"{color}{piece_type}"
+            else:
+                piece_type_key = piece_id[:2]
+        else:
+            piece_type_key = piece_id[:2] if isinstance(piece_id, str) else str(piece_id)[:2]
         
         # תרגום מצב לוגי לשם תיקיית המצב
         state_key = logical_state.lower()

@@ -1,8 +1,8 @@
-from logic.model.board import Board
-from logic.model.game_state import GameState
-from logic.model.position import Position
-from logic.rules.rule_engine import RuleEngine
-from logic.real_time.real_time_arbiter import RealTimeArbiter
+from shared.model.board import Board
+from shared.model.game_state import GameState
+from shared.model.position import Position
+from shared.rules.rule_engine import RuleEngine
+from shared.real_time.real_time_arbiter import RealTimeArbiter
 class GameEngine:
     def __init__(self, board: Board, rule_engine: RuleEngine, realtime_arbiter: RealTimeArbiter):
         self.board = board
@@ -75,7 +75,7 @@ class GameEngine:
         
         if hasattr(piece, 'position'):
             piece.position = to_pos
-
+        print(f"DEBUG Arrival: piece_type={piece.type} ({type(piece.type)}), color={piece.color} ({type(piece.color)}), to_y={to_pos.y}")
         if str(piece.type).upper() == 'P':
             is_promotion_row = (str(piece.color).lower() == 'w' and to_pos.y == 0) or \
                                (str(piece.color).lower() == 'b' and to_pos.y == self.board.height - 1)

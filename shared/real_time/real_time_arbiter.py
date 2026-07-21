@@ -1,5 +1,5 @@
-from logic.model.position import Position
-from logic.real_time.motion import Motion
+from shared.model.position import Position
+from shared.real_time.motion import Motion
 
 class RealTimeArbiter:
     def __init__(self):

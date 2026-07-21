@@ -1,6 +1,6 @@
-from logic.input.board_mapper import BoardMapper
+from client.input.board_mapper import BoardMapper
 from logic.engine.game_engine import GameEngine
-from logic.model.position import Position
+from shared.model.position import Position
 
 class Controller:
     def __init__(self, board_mapper: BoardMapper, game_engine: GameEngine):

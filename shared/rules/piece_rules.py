@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from logic.model.position import Position
-from logic.model.board import Board
+from shared.model.position import Position
+from shared.model.board import Board
 
 class MovementRule(ABC):
     @abstractmethod

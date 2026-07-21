@@ -1,5 +1,5 @@
-import logic.rules.piece_rules as piecerules
-from logic.model.board import Board
+import shared.rules.piece_rules as piecerules
+from shared.model.board import Board
 
 class RuleEngine:
     def __init__(self):

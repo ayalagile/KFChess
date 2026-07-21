@@ -1,5 +1,5 @@
-from logic.model.board import Board
-from logic.model.position import Position
+from shared.model.board import Board
+from shared.model.position import Position
 
 class BoardPrinter:
     def __init__(self):

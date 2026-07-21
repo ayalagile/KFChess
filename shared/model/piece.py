@@ -1,4 +1,4 @@
-from logic.model.position import Position
+from shared.model.position import Position
 
 class Piece:
     def __init__(self, piece_id: str, piece_type: str, color: str, position: Position):
