@@ -93,8 +93,12 @@ class SpriteManager:
         state_key = logical_state.lower()
         if state_key == "jumping":
             state_key = "jump"
+        elif state_key == "restingjump":
+            state_key = "short_rest" 
         elif state_key == "moving":
             state_key = "move"
+        elif state_key == "restingmove":
+            state_key = "long_rest" 
         elif state_key == "idle":
             state_key = "idle"
 

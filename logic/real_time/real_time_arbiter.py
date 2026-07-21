@@ -4,8 +4,8 @@ from logic.real_time.motion import Motion
 class RealTimeArbiter:
     def __init__(self):
         self.active_motions = []
-        # מיפוי של כלי (Piece) לזמן שנותר לקפיצה שלו במילישניות: {piece_obj: remaining_ms}
         self.active_jumps = {}
+        self.resting_cooldowns = {}
 
     def is_color_moving(self, color: str) -> bool:
         for motion in self.active_motions:
@@ -14,34 +14,20 @@ class RealTimeArbiter:
         return False
 
     def is_piece_airborne(self, piece) -> bool:
-        """מחזיר True אם הכלי נמצא כרגע באוויר (במהלך קפיצה)"""
         return piece in self.active_jumps and self.active_jumps[piece] > 0
 
     def start_jump(self, piece) -> bool:
-        """
-        מפעיל קפיצה לכלי.
-        חוקים:
-        - קפיצה נמשכת 1000 מילישניות.
-        - כלי בתנועה ("Moving") אינו יכול לקפוץ.
-        - כלי שנלכד ("Captured") אינו יכול לקפוץ.
-        - הכלי הקופץ נשאר באותו תא לוגי.
-        """
-        is_moving = hasattr(piece, 'state') and piece.state == "Moving"
-        is_captured = hasattr(piece, 'state') and piece.state == "Captured"
-
-        if is_moving or is_captured:
+        if getattr(piece, 'state', 'Idle') != "Idle":
             return False
-
-        # רישום משך הקפיצה
         self.active_jumps[piece] = 1000
         piece.state = "Jumping"
         return True
 
     def start_motion(self, piece, from_pos: Position, to_pos: Position) -> bool:
-        # כלי שקופץ (או באוויר) לא יכול להתחיל ללכת
+        if getattr(piece, 'state', 'Idle') != "Idle":
+            return False
         if self.is_piece_airborne(piece):
             return False
-
         if self.is_color_moving(piece.color):
             return False 
         
@@ -65,7 +51,6 @@ class RealTimeArbiter:
             self.active_motions.remove(motion_to_remove)
 
     def cancel_motion_by_destination(self, pos: Position):
-        """ביטול תנועה של כל כלי שנע לכיוון משבצת היעד הזו"""
         motions_to_cancel = [m for m in self.active_motions if m.to_pos == pos]
         for m in motions_to_cancel:
             m.piece.state = "Idle"
@@ -114,8 +99,8 @@ class RealTimeArbiter:
                 else:
                     # הגעה רגילה אם אין אף אחד באוויר
                     self.active_motions.remove(motion)
-                    motion.piece.state = "Idle"
-                    
+                    motion.piece.state = "RestingMove"
+                    self.resting_cooldowns[motion.piece] = 3000
                     arrival_event = game_engine.resolve_arrival(motion)
                     if arrival_event:
                         events.append(arrival_event)
@@ -132,11 +117,16 @@ class RealTimeArbiter:
         for piece in finished_jumps:
             if piece in self.active_jumps:
                 del self.active_jumps[piece]
-                # אם הכלי לא נלכד או השתנה מצבו במהלך ה-Tick, מחזירים אותו ל-Idle
                 if hasattr(piece, 'state') and piece.state == "Jumping":
-                    piece.state = "Idle"
+                    piece.state = "RestingJump"
+                    self.resting_cooldowns[piece] = 1000
 
-        # 4. הרצת tick רגיל עבור הכלים שעדיין נותרו בתנועה באוויר
+        for piece in list(self.resting_cooldowns.keys()):
+            self.resting_cooldowns[piece] -= elapsed_time_ms
+            if self.resting_cooldowns[piece] <= 0:
+                piece.state = "Idle"
+                del self.resting_cooldowns[piece]
+
         for motion in list(self.active_motions):
             motion.tick(elapsed_time_ms)
             
