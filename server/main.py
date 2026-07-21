@@ -7,6 +7,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from bus.event_bus import event_bus
 from bus.events import ClientConnectedEvent, ClientDisconnectedEvent, MessageReceivedEvent
 from bus.listeners.logging_listener import on_client_connected, on_client_disconnected, on_message_received
+from server.auth import handle_login, handle_register
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("Server")
@@ -15,7 +16,6 @@ app = FastAPI()
 
 @app.on_event("startup")
 async def startup_event():
-    # רישום המאזינים ל-Event Bus
     event_bus.subscribe(ClientConnectedEvent, on_client_connected)
     event_bus.subscribe(ClientDisconnectedEvent, on_client_disconnected)
     event_bus.subscribe(MessageReceivedEvent, on_message_received)
@@ -26,7 +26,6 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     client_id = str(uuid.uuid4())[:8]
     
-    # פרסום אירוע התחברות
     await event_bus.publish(ClientConnectedEvent(client_id=client_id))
     
     try:
@@ -56,15 +55,26 @@ async def websocket_endpoint(websocket: WebSocket):
                 request_id=request_id
             ))
 
-            # תשובת Echo כרגיל
-            echo_response = {
-                "type": f"echo_{msg_type}",
-                "payload": payload,
+            # טיפול בהודעות לפי הסוג (רישום, התחברות או ברירת מחדל)
+            response_payload = {}
+            response_type = f"echo_{msg_type}"
+
+            if msg_type == "register":
+                response_payload = await handle_register(payload)
+                response_type = "register_result"
+            elif msg_type == "login":
+                response_payload = await handle_login(payload)
+                response_type = "login_result"
+            else:
+                response_payload = payload
+
+            response = {
+                "type": response_type,
+                "payload": response_payload,
                 "request_id": request_id,
                 "ts": int(time.time())
             }
-            await websocket.send_text(json.dumps(echo_response))
+            await websocket.send_text(json.dumps(response))
 
     except WebSocketDisconnect:
-        # פרסום אירוע ניתוק
         await event_bus.publish(ClientDisconnectedEvent(client_id=client_id))
