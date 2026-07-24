@@ -1,21 +1,22 @@
+import time
 import uuid
+import json
+from server.state import server_state
 from server.engine_adapter import EngineAdapter
 from typing import Dict, List
 from bus.event_bus import event_bus
 from bus.events import RoomCreatedEvent, PlayerJoinedRoomEvent, ViewerJoinedRoomEvent
-
 class Room:
     def __init__(self, room_id: str, creator_id: str):
         self.room_id = room_id
         self.players: List[str] = [creator_id]
         self.viewers: List[str] = []
         
-        # אתחול המנוע ומצב המשחק עבור החדר הספציפי הזה
         self.engine_adapter = EngineAdapter()
         self.game_state = self.engine_adapter.get_initial_state()
+        self.last_activity = time.time()
 
     async def handle_move(self, client_id: str, move_data: dict) -> tuple[bool, dict]:
-        """מטפל במהלך שנשלח על ידי שחקן בחדר"""
         if client_id not in self.players:
             return False, "Unauthorized player"
 
@@ -27,10 +28,10 @@ class Room:
             return False, error
 
         self.game_state = new_state
+        self.last_activity = time.time()
         return True, self.game_state
 
     def remove_participant(self, client_id: str) -> bool:
-        """מסיר משתתף. מחזיר True אם החדר התרוקן לחלוטין."""
         if client_id in self.players:
             self.players.remove(client_id)
         elif client_id in self.viewers:
@@ -38,7 +39,6 @@ class Room:
             
         return len(self.players) == 0 and len(self.viewers) == 0
     def add_participant(self, client_id: str) -> str:
-        """מוסיף משתתף לחדר. מחזיר 'player' או 'viewer'."""
         if client_id in self.players or client_id in self.viewers:
             return "already_in_room"
 
@@ -55,7 +55,7 @@ class RoomManager:
         self.client_to_room: Dict[str, str] = {}
 
     async def create_room(self, creator_id: str) -> str:
-        room_id = str(uuid.uuid4())[:6].upper()  # קוד חדר קצר
+        room_id = str(uuid.uuid4())[:6].upper()
         room = Room(room_id, creator_id)
         self.rooms[room_id] = room
         self.client_to_room[creator_id] = room_id
@@ -83,7 +83,7 @@ class RoomManager:
             return {"success": True, "role": "player", "player_number": player_num, "room_id": room_id}
         else:
             await event_bus.publish(ViewerJoinedRoomEvent(room_id=room_id, client_id=client_id))
-            return {"success": True, "role": "viewer", "room_id": room_id}
+            return {"success": True, "role": "viewer", "room_id": room_id, "current_state": room.game_state}
 
     async def cancel_room(self, client_id: str) -> dict:
         room_id = self.client_to_room.get(client_id)
@@ -100,29 +100,21 @@ class RoomManager:
         return {"success": True, "message": f"Left room {room_id}"}
     
     def get_session_by_client(self, client_id: str):
-        """מחזיר את אובייקט החדר/הסשן שבו נמצא הלקוח כרגע"""
         room_id = self.client_to_room.get(client_id)
         if room_id:
             return self.rooms.get(room_id)
         return None
 
     async def broadcast_to_room(self, room_id: str, message: dict):
-        """משדר הודעה לכל המשתתפים בחדר (שחקנים וצופים)"""
         room = self.rooms.get(room_id)
         if not room:
             return
         
-        # איסוף כלל המשתתפים בחדר
         all_participants = set(room.players + room.viewers)
         
-        # הנחת עבודה: לשרת יש גישה למילון connected_clients שמחזיק את אובייקטי ה־WebSocket
-        from server.main import connected_clients
-        import json
-
         for participant_id in all_participants:
-            client_data = connected_clients.get(participant_id)
+            client_data = server_state.connected_clients.get(participant_id)
             if client_data and "websocket" in client_data:
                 await client_data["websocket"].send_text(json.dumps(message))
 
-# יצירת המופע המרכזי של מנהל החדרים
 room_manager = RoomManager()
